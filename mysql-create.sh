@@ -47,21 +47,50 @@ while true; do
         ;;
     esac
 
+    read -r -p "Voulez vous que votre utilisateur ai un accès passe partout [root] ? [y/N] : " responseIsRoot
+
+    case "$responseIsRoot" in
+    [yY][eE][sS] | [yY] | [oO] | [oO][uU][iI])
+	sqlUserRoot=true
+	;;
+    *)
+	sqlUserRoot=false
+	;;
+
+    esac
+
     echo
     read -r -p "êtes vous sûr ? [y/N] : " responseDBConfirm
 
     case "$responseDBConfirm" in
     [yY][eE][sS] | [yY] | [oO][uU][iI] | [oO])
-            Q1="CREATE DATABASE IF NOT EXISTS $sqlDB;"
-            Q2="GRANT ALL ON $sqlDB.* TO '$sqlUser'@'localhost' IDENTIFIED BY '$sqlPass';"
+            
+	if [[ $sqlUserRoot == true ]]; then
+		Q2="GRANT ALL PRIVILEGES ON *.* TO '$sqlUser'@'localhost' IDENTIFIED BY '$sqlPass' WITH GRANT OPTION;"
+	else
+		Q2="GRANT ALL ON $sqlDB.* TO '$sqlUser'@'localhost' IDENTIFIED BY '$sqlPass';"
+	fi
+
+	    Q1="CREATE DATABASE IF NOT EXISTS $sqlDB;"
+	    # Q2 IS ALREADY DEFINED UPSIDE
             Q3="FLUSH PRIVILEGES;"
             SQL="${Q1}${Q2}${Q3}"
             sudo $MYSQL -u root -e "$SQL"
-            
+
+	if [[ $sqlUserRoot == true ]]; then
+		userIsRoot="Oui"
+	else
+		userIsRoot="Non"
+	fi
+	    # Debug mode
+	    # echo -e "${SQL}"
+	    ############
+
             echo
             echo "Nom de la base de données : $sqlDB"
             echo "Nom d'utilisateur : $sqlUser"
             echo "Mot de passe : $sqlPass"
+	    echo "Compte admin : $userIsRoot"
 
             sleep 3
             echo
